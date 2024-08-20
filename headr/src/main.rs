@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Read};
 use std::fs::File;
 
 #[derive(Parser, Debug)]
@@ -41,22 +41,27 @@ fn fileopen(filename: &str) -> Result<Box<dyn BufRead>> {
 }
 
 fn run(args: Arguments) -> Result<()> {
-    let opt_n: u64 = args.lines;
-    let opt_c: u64 = args.bytes.unwrap_or_else(|| 0);
-
     for fname in args.files {
         match fileopen(&fname) {
-            Ok(bufread) => {
-                //println!("{fname}: opened! ({opt_n}, {opt_c})");
-                for (linenum, read) in bufread.lines().enumerate() {
-                    if linenum == opt_n.try_into().unwrap() {
-                        break;
-                    }
-                    let line = read?;
-                    println!("{line}");
-                }
-            },
             Err(e) => eprintln!("{fname}: {e}"),
+            Ok(mut fd) => {
+                if let Some(nr_bytes) = args.bytes {
+                    let mut buffer = vec![0; nr_bytes as usize];
+                    let bytes_read = fd.read(&mut buffer)?;
+                    println!("{}", String::from_utf8_lossy(&buffer[..bytes_read]));
+                } else {
+                    let mut line = String::new();
+                    for _ in 0..args.lines {
+                        let bytes = fd.read_line(&mut line)?;
+                        if bytes == 0 {
+                            break;
+                        }
+                        print!("{line}");
+                        line.clear();
+                    }
+                }
+
+            }
         }
     }
     Ok(())
