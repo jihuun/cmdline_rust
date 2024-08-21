@@ -41,14 +41,22 @@ fn fileopen(filename: &str) -> Result<Box<dyn BufRead>> {
 }
 
 fn run(args: Arguments) -> Result<()> {
-    for fname in args.files {
+    let nr_files = args.files.len();
+
+    for (fnum, fname) in args.files.iter().enumerate() {
         match fileopen(&fname) {
             Err(e) => eprintln!("{fname}: {e}"),
             Ok(mut fd) => {
+                if nr_files > 1 {
+                    println!("{}==> {fname} <==",
+                        if fnum > 0 {"\n"} else {""}
+                        );
+                }
                 if let Some(nr_bytes) = args.bytes {
-                    let mut buffer = vec![0; nr_bytes as usize];
-                    let bytes_read = fd.read(&mut buffer)?;
-                    println!("{}", String::from_utf8_lossy(&buffer[..bytes_read]));
+                    //let bytes: Result<Vec<_>, _> = fd.bytes().take(nr_bytes as usize).collect();
+                    let bytes = fd.bytes().take(nr_bytes as usize).collect::<Result<Vec<_>, _>>();
+                    // https://stackoverflow.com/questions/19076719/how-do-i-convert-a-vector-of-bytes-u8-to-a-string
+                    print!("{}", String::from_utf8_lossy(&bytes?));
                 } else {
                     let mut line = String::new();
                     for _ in 0..args.lines {
