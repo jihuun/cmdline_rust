@@ -25,7 +25,7 @@ struct Args {
     bytes: bool,
 
     /// Show charactor count
-    #[arg(short('m'), long)]
+    #[arg(short('m'), long, conflicts_with("bytes"))]
     chars: bool,
 }
 
@@ -36,13 +36,21 @@ fn fileopen(fname: &str) -> Result<Box<dyn BufRead>> {
     }
 }
 
+fn format_field(val: usize, opt: bool) -> String {
+    if opt {
+        format!("{:>8}", val)
+    } else {
+        "".to_string()
+    }
+}
+
 fn run(mut args: Args) -> Result<()> {
     if [args.lines, args.words, args.bytes, args.chars].iter().all(|v| v == &false) {
         args.lines = true;
         args.words = true;
         args.bytes = true;
     }
-    println!("{args:#?}");
+    //println!("{args:#?}");
 
     for fname in args.files {
         let fi: FileInfo;
@@ -50,7 +58,15 @@ fn run(mut args: Args) -> Result<()> {
             Err(e) => eprintln!("{fname}: {e}"),
             Ok(fd) => {
                 fi = get_count(fd)?;
-                println!("{fname}: {fi:?}")
+                println!("{}{}{} {fname}",
+                   format_field(fi.num_lines, args.lines),
+                   format_field(fi.num_words, args.words),
+                   if args.chars {
+                       format_field(fi.num_chars, args.chars)
+                   } else {
+                       format_field(fi.num_bytes, args.bytes)
+                   }
+                )
             },
         }
     }
@@ -95,6 +111,19 @@ fn get_count<T: BufRead>(mut fd: T) -> Result<FileInfo> {
     }
 
     Ok(FileInfo { num_lines, num_words, num_bytes, num_chars})
+}
+
+#[cfg(test)]
+mod format_tests {
+    use super::{get_count, FileInfo, format_field};
+    use std::io::Cursor;
+
+    #[test]
+    fn test_format_field() {
+        assert_eq!(format_field(9, true), "       9".to_string());
+        assert_eq!(format_field(99, true), "      99".to_string());
+        assert_eq!(format_field(99, false), "");
+    }
 }
 
 #[cfg(test)]
