@@ -79,8 +79,20 @@ fn get_count<T: BufRead>(mut fd: T) -> Result<FileInfo> {
     let mut num_bytes = 0;
     let mut num_chars = 0;
 
-    num_lines = fd.lines().count();
-    num_words = fd.lines().split_whitespace().count();
+    let mut buf = String::new();
+
+    loop {
+        let bytes = fd.read_line(&mut buf)?; // read_line count \n \r as well.
+                                             // but not lines()
+        if bytes == 0 {
+            break;
+        }
+        num_bytes += bytes;
+        num_words += buf.split_whitespace().count();
+        num_chars += buf.chars().count();
+        num_lines += 1;
+        buf.clear();
+    }
 
     Ok(FileInfo { num_lines, num_words, num_bytes, num_chars})
 }
