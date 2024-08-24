@@ -45,30 +45,56 @@ fn format_field(val: usize, opt: bool) -> String {
 }
 
 fn run(mut args: Args) -> Result<()> {
-    if [args.lines, args.words, args.bytes, args.chars].iter().all(|v| v == &false) {
+    if [args.lines, args.words, args.bytes, args.chars]
+        .iter()
+        .all(|v| v == &false)
+    {
         args.lines = true;
         args.words = true;
         args.bytes = true;
     }
     //println!("{args:#?}");
+    let mut total_lines = 0;
+    let mut total_words = 0;
+    let mut total_chars = 0;
+    let mut total_bytes = 0;
 
-    for fname in args.files {
+    for fname in &args.files {
+        //        ---------- `args.files` moved due to this implicit call to `.into_iter()`
+        //       ^ 그래서 &로 참조.
+        //       into_iter()는 소유권을 가져가므로, args.files.iter() 를 사용해도 됨.
         let fi: FileInfo;
         match fileopen(&fname) {
             Err(e) => eprintln!("{fname}: {e}"),
             Ok(fd) => {
                 fi = get_count(fd)?;
-                println!("{}{}{} {fname}",
+                println!("{}{}{}{}{}",
                    format_field(fi.num_lines, args.lines),
                    format_field(fi.num_words, args.words),
-                   if args.chars {
-                       format_field(fi.num_chars, args.chars)
+                   format_field(fi.num_chars, args.chars),
+                   format_field(fi.num_bytes, args.bytes),
+                   if fname == "-" {
+                       "".to_string()
                    } else {
-                       format_field(fi.num_bytes, args.bytes)
+                       format!(" {fname}")
                    }
-                )
+                );
+
+                total_lines += fi.num_lines;
+                total_words += fi.num_words;
+                total_chars += fi.num_chars;
+                total_bytes += fi.num_bytes;
             },
         }
+    }
+    //if args.files.iter().count() > 1 {
+    if args.files.len() > 1 {
+        println!("{}{}{}{} total",
+            format_field(total_lines, args.lines),
+            format_field(total_words, args.words),
+            format_field(total_chars, args.chars),
+            format_field(total_bytes, args.bytes)
+        );
     }
     Ok(())
 }
@@ -115,8 +141,7 @@ fn get_count<T: BufRead>(mut fd: T) -> Result<FileInfo> {
 
 #[cfg(test)]
 mod format_tests {
-    use super::{get_count, FileInfo, format_field};
-    use std::io::Cursor;
+    use super::{format_field};
 
     #[test]
     fn test_format_field() {
