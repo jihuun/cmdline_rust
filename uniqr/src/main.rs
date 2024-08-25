@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Write};
 use std::fs::File;
 
 #[derive(Parser, Debug)]
@@ -42,29 +42,39 @@ fn run(args: Args) -> Result<()> {
     //println!("{:?}", args);
     let mut fd = file_open(&args.in_file)
         .map_err(|e| anyhow!("{}: {e}", args.in_file))?;
+
+    let mut out_file: Box<dyn Write> = match &args.out_file {
+        Some(out_name) => Box::new(File::create(out_name)?), // FILE 포인터
+        _ => Box::new(io::stdout()), // 아니면, STDOUT FILE포인터
+    };
+
+    let mut print_cnt = |count: u32, text: &str| -> Result<()> {
+        if count > 0 {
+            write!(out_file, "{}{text}", format_field(count, args.count));
+            // print!("")           -> C에서 printf(""); 개념.
+            // write!(out_file, "") -> C에서 fprintf(STDOUT, ""); 개념과 같음
+        }
+        Ok(())
+    };
+
     let mut buf = String::new();
     let mut prev = String::new();
     let mut count: u32 = 0;
-    let print_cnt = |count: u32, text: &str| {
-        if count > 0 {
-            print!("{}{text}", format_field(count, args.count));
-        }
-    };
 
     loop {
         let bytes = fd.read_line(&mut buf)?;
         if bytes == 0 {
             break;
         }
-        if buf != prev {
-            print_cnt(count, &prev);
+        if buf.trim_end() != prev.trim_end() {
+            print_cnt(count, &prev)?;
             prev = buf.clone();
             count = 0;
         }
         count += 1;
         buf.clear();
     }
-    print_cnt(count, &prev);
+    print_cnt(count, &prev)?;
     Ok(())
 }
 
