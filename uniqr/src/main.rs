@@ -30,20 +30,41 @@ fn file_open(fname: &str) -> Result<Box<dyn BufRead>> {
 
 }
 
+fn format_field(val: u32, opt: bool) -> String {
+    if opt {
+        format!("{:>4} ", val)
+    } else {
+        "".to_string()
+    }
+}
+
 fn run(args: Args) -> Result<()> {
     //println!("{:?}", args);
     let mut fd = file_open(&args.in_file)
         .map_err(|e| anyhow!("{}: {e}", args.in_file))?;
     let mut buf = String::new();
+    let mut prev = String::new();
+    let mut count: u32 = 0;
+    let print_cnt = |count: u32, text: &str| {
+        if count > 0 {
+            print!("{}{text}", format_field(count, args.count));
+        }
+    };
 
     loop {
         let bytes = fd.read_line(&mut buf)?;
         if bytes == 0 {
             break;
         }
-        print!("{buf}");
+        if buf != prev {
+            print_cnt(count, &prev);
+            prev = buf.clone();
+            count = 0;
+        }
+        count += 1;
         buf.clear();
     }
+    print_cnt(count, &prev);
     Ok(())
 }
 
