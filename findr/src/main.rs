@@ -29,12 +29,23 @@ impl ValueEnum for EntryType {
 /// Rust version of find
 struct Args {
     /// Search paths
-    #[arg(name = "PATH", default_value = ".")]
+    #[arg(
+        name = "PATH",
+        default_value = ".",
+        num_args(0..),
+    )]
     paths: Vec<String>,
 
     /// Name
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long("name"),
+        value_parser(Regex::new),
+        num_args(0..),
+    )]
     names: Vec<Regex>,
+    // 한 옵션에 여러개의 인자를 받고 싶을때 -> #[arg(num_args(0..))]
+    // https://docs.rs/clap/latest/clap/builder/struct.Arg.html#method.num_args
 
     /// Entry Type
     #[arg(
@@ -42,6 +53,7 @@ struct Args {
         long("type"),
         name = "TYPE",
         value_parser(clap::value_parser!(EntryType)),
+        num_args(0..),
     )]
     entry_types: Vec<EntryType>,
 }
