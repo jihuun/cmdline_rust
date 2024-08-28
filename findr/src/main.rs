@@ -1,6 +1,7 @@
-use clap::{Parser, builder::PossibleValue, ValueEnum};
+use clap::{Parser, builder::PossibleValue, ValueEnum, ArgAction};
 use regex::Regex;
 use anyhow::Result;
+use walkdir::WalkDir;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum EntryType {
@@ -41,6 +42,7 @@ struct Args {
         short,
         long("name"),
         value_parser(Regex::new),
+        // action(ArgAction::Append),
         num_args(0..),
     )]
     names: Vec<Regex>,
@@ -59,7 +61,27 @@ struct Args {
 }
 
 fn run(args: Args) -> Result<()> {
-    println!("{args:?}");
+    //println!("{args:?}");
+    let opt_names = args.names;
+    for p in args.paths {
+        for path_entry in WalkDir::new(p) {
+            // get all of path info from the path "p"
+            match path_entry {
+                Err(e) => eprintln!("{e}"),
+                Ok(entry) => {
+                    /*
+                    for name in opt_names.iter() {
+                        //println!("{name:?}");
+                        if name.is_match(entry.path().to_str().unwrap()) {
+                            println!("{}", entry.path().display());
+                        }
+                    }
+                    */
+                    println!("{}", entry.path().display());
+                },
+            }
+        }
+    }
     Ok(())
 }
 
