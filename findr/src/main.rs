@@ -60,15 +60,40 @@ struct Args {
     entry_types: Vec<EntryType>,
 }
 
+fn is_type_matched(cur_entry: &walkdir::DirEntry, opt_type: &Vec<EntryType>) -> bool {
+    // DirEntry.file_type() -> std::fs::FileType
+    // https://doc.rust-lang.org/nightly/std/fs/struct.FileType.html
+    for t in opt_type {
+        match t {
+            EntryType::Dir => {
+                if cur_entry.file_type().is_dir() { return true; }
+            },
+            EntryType::File => {
+                if cur_entry.file_type().is_file() { return true; }
+            },
+            EntryType::Link => {
+                if cur_entry.file_type().is_symlink() { return true; }
+            },
+        }
+    }
+    false
+}
+
 fn run(args: Args) -> Result<()> {
     //println!("{args:?}");
     let opt_names = args.names;
+    let opt_types = args.entry_types;
+
     for p in args.paths {
         for path_entry in WalkDir::new(p) {
             // get all of path info from the path "p"
             match path_entry {
                 Err(e) => eprintln!("{e}"),
                 Ok(entry) => {
+                    if !is_type_matched(&entry, &opt_types) {
+                        continue;
+                    }
+
                     /*
                     for name in opt_names.iter() {
                         //println!("{name:?}");
