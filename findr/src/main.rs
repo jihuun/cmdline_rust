@@ -93,16 +93,21 @@ fn run(args: Args) -> Result<()> {
                     if !is_type_matched(&entry, &opt_types) {
                         continue;
                     }
-
-                    /*
-                    for name in opt_names.iter() {
-                        //println!("{name:?}");
-                        if name.is_match(entry.path().to_str().unwrap()) {
-                            println!("{}", entry.path().display());
+                    if opt_names.len() == 0 {
+                        println!("{}", entry.path().display());
+                    } else {
+                        for name in opt_names.iter() {
+                            // entry.path()'s type -> std::path::Path
+                            // https://doc.rust-lang.org/stable/std/path/struct.Path.html
+                            if name.is_match(entry.path()
+                                                .file_name().expect("failed to get file name")
+                                                .to_str()
+                                                .unwrap()) {
+                                println!("{}", entry.path().display());
+                            }
                         }
                     }
-                    */
-                    println!("{}", entry.path().display());
+
                 },
             }
         }
