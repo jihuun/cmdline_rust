@@ -80,36 +80,26 @@ fn is_type_matched(cur_entry: &walkdir::DirEntry, opt_type: &Vec<EntryType>) -> 
 }
 
 fn run(args: Args) -> Result<()> {
-    //println!("{args:?}");
     let opt_names = args.names;
     let opt_types = args.entry_types;
 
     for p in args.paths {
         for path_entry in WalkDir::new(p) {
-            // get all of path info from the path "p"
             match path_entry {
                 Err(e) => eprintln!("{e}"),
                 Ok(entry) => {
-                    if !is_type_matched(&entry, &opt_types) {
-                        continue;
-                    }
-                    if opt_names.len() == 0 {
-                        println!("{}", entry.path().display());
-                    } else {
-                        for name in opt_names.iter() {
-                            // entry.path()'s type -> std::path::Path
-                            // https://doc.rust-lang.org/stable/std/path/struct.Path.html
-                            if name.is_match(entry.path()
-                                                .file_name().expect("failed to get file name")
-                                                .to_str()
-                                                .unwrap()) {
-                                println!("{}", entry.path().display());
-                            }
-                        }
-                    }
+                    if (opt_types.is_empty() || is_type_matched(&entry, &opt_types))
+                        && (opt_names.is_empty()
+                            || opt_names.iter().any(|re| {
+                                re.is_match( &entry.file_name().to_string_lossy(),)
+                            }))
+                    {
 
-                },
+                        println!("{}", entry.path().display());
+                    }
+                }
             }
+
         }
     }
     Ok(())
