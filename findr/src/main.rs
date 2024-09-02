@@ -83,24 +83,39 @@ fn run(args: Args) -> Result<()> {
     let opt_names = args.names;
     let opt_types = args.entry_types;
 
+    let type_filter = |entry: &walkdir::DirEntry| {
+        opt_types.is_empty()
+            || opt_types.iter().any(|entry_type| match entry_type {
+                EntryType::Dir => entry.file_type().is_dir(),
+                EntryType::File => entry.file_type().is_file(),
+                EntryType::Link => entry.file_type().is_symlink(),
+            })
+    };
+
+    let name_filter = |entry: &walkdir::DirEntry| {
+        opt_names.is_empty()
+            || opt_names.iter().any(|re| {
+                re.is_match(&entry.file_name().to_string_lossy(),)
+            })
+    };
+
     for p in args.paths {
-        for path_entry in WalkDir::new(p) {
-            match path_entry {
-                Err(e) => eprintln!("{e}"),
-                Ok(entry) => {
-                    if (opt_types.is_empty() || is_type_matched(&entry, &opt_types))
-                        && (opt_names.is_empty()
-                            || opt_names.iter().any(|re| {
-                                re.is_match( &entry.file_name().to_string_lossy(),)
-                            }))
-                    {
-
-                        println!("{}", entry.path().display());
-                    }
+        let entries = WalkDir::new(p)
+            .into_iter()
+            //.filter_map(|e| e.ok()) // -> Ok() 인것만 필터링해서 iterater 반환
+            .filter_map(|e| match e { // Result<> 타입을 Option<> 으로 변환필요
+                Err(e) => {
+                    eprintln!("{e}");
+                    None
                 }
-            }
+                Ok(e) => Some(e)
+            })
+            .filter(type_filter) // filter 에 전달하는 closure는 bool 타입 리턴해야함.
+            .filter(name_filter)
+            .map(|entry| entry.path().display().to_string()) // vec(DirEntry)  타입을 vec(String) 타입으로 변환
+            .collect::<Vec<_>>();
 
-        }
+        println!("{}", entries.join("\n"));
     }
     Ok(())
 }
