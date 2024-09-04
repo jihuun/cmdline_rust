@@ -1,3 +1,4 @@
+use anyhow::{Result,bail};
 use clap::{Parser};
 
 #[derive(Parser, Debug)]
@@ -32,7 +33,23 @@ struct ArgsExtract {
     chars: Option<String>,
 }
 
+fn run(args: Args) -> Result<()> {
+    //println!("{args:?}");
+    let delim_byte = args.delimiter.as_bytes();
+    if delim_byte.len() > 1 {
+        // bail! -> https://docs.rs/clap-utils/latest/clap_utils/macro.bail.html
+        bail!(r#"--delim "{}" must be a single byte"#, args.delimiter);
+    }
+    //                  |           _______ Option<&u8>
+    let delimiter: u8 = *delim_byte.first().unwrap();
+    //                   ^^^^^^^^^^ &[u8]
+    println!("{delimiter}");
+    Ok(())
+}
+
 fn main() {
-    let args = Args::parse();
-    println!("{args:?}");
+    if let Err(e) = run(Args::parse()) {
+        eprintln!("{e}");
+        std::process::exit(1);
+    }
 }
