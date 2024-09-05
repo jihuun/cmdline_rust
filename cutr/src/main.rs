@@ -78,7 +78,9 @@ mod unit_tests {
     fn test_parse_pos() {
         // The empty string is an error
         assert!(parse_pos("".to_string()).is_err());
-
+    }
+    #[test]
+    fn test_parse_pos_zero() {
         // Zero is an error
         let res = parse_pos("0".to_string());
         assert!(res.is_err());
@@ -86,14 +88,19 @@ mod unit_tests {
             res.unwrap_err().to_string(),
             r#"illegal list value: "0""#
         );
+    }
 
+    #[test]
+    fn test_parse_pos_zero2() {
         let res = parse_pos("0-1".to_string());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err().to_string(),
             r#"illegal list value: "0""#
         );
-
+    }
+    #[test]
+    fn test_parse_pos_plus() {
         // A leading "+" is an error
         let res = parse_pos("+1".to_string());
         assert!(res.is_err());
@@ -101,21 +108,29 @@ mod unit_tests {
             res.unwrap_err().to_string(),
             r#"illegal list value: "+1""#,
         );
+    }
 
+    #[test]
+    fn test_parse_pos_plus2() {
         let res = parse_pos("+1-2".to_string());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err().to_string(),
             r#"illegal list value: "+1-2""#,
         );
-
+    }
+    #[test]
+    fn test_parse_pos_plus3() {
         let res = parse_pos("1-+2".to_string());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err().to_string(),
             r#"illegal list value: "1-+2""#,
         );
+    }
 
+    #[test]
+    fn test_parse_pos_non_number1() {
         // Any non-number is an error
         let res = parse_pos("a".to_string());
         assert!(res.is_err());
@@ -123,28 +138,39 @@ mod unit_tests {
             res.unwrap_err().to_string(),
             r#"illegal list value: "a""#
         );
-
+    }
+    #[test]
+    fn test_parse_pos_non_number2() {
         let res = parse_pos("1,a".to_string());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err().to_string(),
             r#"illegal list value: "a""#
         );
+    }
 
+
+    #[test]
+    fn test_parse_pos_non_number3() {
         let res = parse_pos("1-a".to_string());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err().to_string(),
             r#"illegal list value: "1-a""#,
         );
-
+    }
+    #[test]
+    fn test_parse_pos_non_number4() {
         let res = parse_pos("a-1".to_string());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err().to_string(),
             r#"illegal list value: "a-1""#,
         );
+    }
 
+    #[test]
+    fn test_parse_pos_non_wonky_ranges() {
         // Wonky ranges
         let res = parse_pos("-".to_string());
         assert!(res.is_err());
@@ -163,7 +189,10 @@ mod unit_tests {
 
         let res = parse_pos("1-1-a".to_string());
         assert!(res.is_err());
+    }
 
+    #[test]
+    fn test_parse_pos_inc_nums() {
         // First number must be less than second
         let res = parse_pos("1-1".to_string());
         assert!(res.is_err());
@@ -178,7 +207,10 @@ mod unit_tests {
             res.unwrap_err().to_string(),
             "First number in range (2) must be lower than second number (1)"
         );
+    }
 
+    #[test]
+    fn test_parse_pos_inc_acceptable() {
         // All the following are acceptable
         let res = parse_pos("1".to_string());
         assert!(res.is_ok());
